@@ -9,6 +9,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.patternmemorygame.AppConstants.KEY_HIGH_SCORE
+import com.example.patternmemorygame.AppConstants.PREFS_NAME
 import com.example.patternmemorygame.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
@@ -30,34 +32,30 @@ class MainActivity : AppCompatActivity() {
     private var currentLevel = 1
     private var isShowingPattern = false
 
-    // True during game over state (timeout or wrong tap).
-    // Blocks all tile input until the player starts a new game.
+    // Blocks tile input during game over state (timeout or wrong tap)
     private var isGameOver = false
 
     // Active countdown timer — replaced each level, cancelled on game over
     private var countDownTimer: CountDownTimer? = null
 
-    // True when the timer expired naturally; used to show "Time's Up!"
+    // True when the timer expired naturally — used to show "Time's Up!"
     // instead of "Pattern Broken!" in gameOver()
     private var timedOut = false
 
-    // ── Shared preferences (high score) ──────────────────────────────────────
-    private val prefs by lazy { getSharedPreferences("pattern_game_prefs", Context.MODE_PRIVATE) }
-    private val KEY_HIGH_SCORE = "high_score"
+    // ── SharedPreferences (local high score cache) ────────────────────────────
+    private val prefs by lazy { getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
 
     // ── Tile colors ───────────────────────────────────────────────────────────
-    // Applied to the tile GradientDrawable via setTileColor()
     private val colorTileDefault   = Color.parseColor("#37474F") // idle — dark slate
     private val colorTileHighlight = Color.parseColor("#FFD600") // pattern flash — amber
     private val colorTileCorrect   = Color.parseColor("#00C853") // correct tap — green
     private val colorTileWrong     = Color.parseColor("#FF1744") // wrong tap — red
 
     // ── UI text colors ────────────────────────────────────────────────────────
-    // Applied to tvStatus and tvTimer to reflect the current game state
     private val colorYellow  = Color.parseColor("#FFD600") // watching / paused
     private val colorGreen   = Color.parseColor("#00C853") // player's turn / success
     private val colorRed     = Color.parseColor("#FF1744") // urgent / loss
-    private val colorNeutral = Color.parseColor("#90A4AE") // idle (matches text_secondary)
+    private val colorNeutral = Color.parseColor("#90A4AE") // idle — matches text_secondary
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -73,32 +71,27 @@ class MainActivity : AppCompatActivity() {
             binding.tile6, binding.tile7, binding.tile8
         )
 
-        // Wire each tile to the input handler
         tiles.forEachIndexed { index, view ->
             view.setOnClickListener { onTileTapped(index) }
         }
 
-        // Start / Try Again — runs the READY countdown then begins the game
         binding.btnStart.setOnClickListener {
             lifecycleScope.launch { startWithCountdown() }
         }
 
-        // Initial UI state
         setTilesEnabled(false)
         binding.tvStatus.text = "Press Start to Begin!"
         binding.tvLevel.text = "Level 1"
 
-        // Load high score: Firestore is the source of truth.
-        // We sync it into SharedPreferences so it's available instantly
-        // on future launches even without a network connection.
+        // Show the local cached score immediately, then sync from Firestore
         loadHighScoreFromFirestore()
     }
 
     // ── Countdown ─────────────────────────────────────────────────────────────
 
     /**
-     * Shows a full-screen READY / 3 / 2 / 1 overlay, then starts the game.
-     * The button is hidden for the entire duration of gameplay.
+     * Shows the full-screen READY / 3 / 2 / 1 overlay, then starts the game.
+     * The Start button is hidden for the entire duration of gameplay.
      */
     private suspend fun startWithCountdown() {
         binding.btnStart.visibility = View.GONE
@@ -139,12 +132,12 @@ class MainActivity : AppCompatActivity() {
         binding.tvStatus.text = "Watch the Pattern!"
         setStatusColor(colorYellow)
 
-        // Show the time budget upfront so the player knows what to expect
+        // Show the time budget so the player knows how long they will have
         val totalSeconds = 3 + currentLevel
         binding.tvTimer.text = "⏱ $totalSeconds s"
         binding.tvTimer.setTextColor(colorYellow)
 
-        // Grow the pattern by one random tile each level
+        // Add one random tile to grow the pattern each level (0–8 = tile indices)
         pattern.add((0 until 9).random())
 
         lifecycleScope.launch {
@@ -154,18 +147,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Flash timing per level — both values shrink by 30 ms each level,
-     * floored at 150 ms so the game stays readable at high levels.
-     *
-     * Level 1 → highlight 500 ms, gap 300 ms
-     * Level 6 → highlight 350 ms, gap 150 ms  (floor reached)
+     * Flash timing shrinks by 30 ms per level, floored at 150 ms.
+     * Level 1: highlight 500 ms, gap 300 ms
+     * Level 6: highlight 350 ms, gap 150 ms (floor reached)
      */
     private fun highlightDuration(): Long = maxOf(500L - (currentLevel - 1) * 30L, 150L)
     private fun gapDuration(): Long       = maxOf(300L - (currentLevel - 1) * 30L, 150L)
 
     /**
-     * Flashes each tile in the pattern one by one using coroutine delays,
-     * then hands control to the player and starts the countdown timer.
+     * Flashes each tile in the pattern one by one using coroutine delays.
+     * Once all tiles have flashed, hands control to the player and starts the timer.
      */
     private suspend fun showPattern() {
         isShowingPattern = true
@@ -182,25 +173,24 @@ class MainActivity : AppCompatActivity() {
         setTilesEnabled(true)
         binding.tvStatus.text = "Repeat the Pattern!"
         setStatusColor(colorGreen)
-        binding.tvTimer.setTextColor(colorGreen) // onTick will switch to red at ≤ 3 s
+        binding.tvTimer.setTextColor(colorGreen) // onTick switches to red at ≤ 3 s
         startTimer()
     }
 
     // ── Player input ──────────────────────────────────────────────────────────
 
     private fun onTileTapped(index: Int) {
-        // Ignore taps during pattern display, game over, or countdown
+        // Ignore taps during pattern display, game over state, or countdown
         if (isShowingPattern || isGameOver) return
 
         playerInput.add(index)
         val step = playerInput.size - 1
 
         if (playerInput[step] == pattern[step]) {
-            // Correct tap
             flashTile(index, colorTileCorrect)
 
             if (playerInput.size == pattern.size) {
-                // Full pattern completed — advance to next level
+                // Full pattern entered correctly — advance to next level
                 stopTimer()
                 setTilesEnabled(false)
                 lifecycleScope.launch {
@@ -210,7 +200,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         } else {
-            // Wrong tap — block input immediately then end the game
+            // Wrong tap — block further input immediately, then trigger game over
             isGameOver = true
             stopTimer()
             flashTile(index, colorTileWrong)
@@ -222,9 +212,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Briefly flashes a tile to [color] then returns it to the default color.
-     */
+    /** Briefly flashes a tile to [color] then returns it to the default tile color. */
     private fun flashTile(index: Int, color: Int) {
         lifecycleScope.launch {
             setTileColor(tiles[index], color)
@@ -237,44 +225,39 @@ class MainActivity : AppCompatActivity() {
 
     private fun gameOver() {
         stopTimer()
-
-        // Freeze the timer in red — loss state always shows red
-        binding.tvTimer.setTextColor(colorRed)
+        binding.tvTimer.setTextColor(colorRed) // freeze timer in red
 
         val score = currentLevel - 1
         val previousBest = prefs.getInt(KEY_HIGH_SCORE, 0)
 
-        if (score > previousBest) {
-            // Save locally first so the display updates immediately
-            prefs.edit().putInt(KEY_HIGH_SCORE, score).apply()
-            updateHighScoreDisplay()
-            binding.tvStatus.text = "New High Score! 🎉"
-            setStatusColor(colorGreen)
-            Toast.makeText(this, "New high score: $score levels!", Toast.LENGTH_SHORT).show()
+        when {
+            score > previousBest -> {
+                // New high score — save locally and to Firestore
+                prefs.edit().putInt(KEY_HIGH_SCORE, score).apply()
+                updateHighScoreDisplay()
+                binding.tvStatus.text = "New High Score! 🎉"
+                setStatusColor(colorGreen)
+                Toast.makeText(this, "New high score: $score levels!", Toast.LENGTH_SHORT).show()
 
-            // Also save to Firestore so the score persists across devices/logins
-            val userId = FirebaseAuth.getInstance().currentUser?.uid
-            if (userId != null) {
-                FirebaseManager.savePersonalBest(userId, score) { saved ->
-                    if (saved) {
-                        // Firestore confirmed the save — nothing extra needed
-                    }
+                FirebaseAuth.getInstance().currentUser?.uid?.let { uid ->
+                    FirebaseManager.savePersonalBest(uid, score) { /* fire and forget */ }
                 }
             }
-        } else if (timedOut) {
-            binding.tvStatus.text = "Time's Up!"
-            setStatusColor(colorRed)
-            Toast.makeText(this, "Ran out of time on Level $currentLevel.", Toast.LENGTH_SHORT).show()
-        } else {
-            binding.tvStatus.text = "Pattern Broken!"
-            setStatusColor(colorRed)
-            Toast.makeText(this, "Nice try! Level $currentLevel reached.", Toast.LENGTH_SHORT).show()
+            timedOut -> {
+                binding.tvStatus.text = "Time's Up!"
+                setStatusColor(colorRed)
+                Toast.makeText(this, "Ran out of time on Level $currentLevel.", Toast.LENGTH_SHORT).show()
+            }
+            else -> {
+                binding.tvStatus.text = "Pattern Broken!"
+                setStatusColor(colorRed)
+                Toast.makeText(this, "Nice try! Level $currentLevel reached.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         timedOut = false
         resetTileColors()
 
-        // Show the button with "Try Again" label
         binding.btnStart.text = "Try Again"
         binding.btnStart.visibility = View.VISIBLE
     }
@@ -282,11 +265,12 @@ class MainActivity : AppCompatActivity() {
     // ── Timer ─────────────────────────────────────────────────────────────────
 
     /**
-     * Starts a fresh countdown for the current level.
-     * Time budget = (3 + currentLevel) seconds, so it grows with pattern length.
+     * Starts a countdown for the current level.
+     * Time budget = (3 + currentLevel) seconds — grows with pattern length.
+     * Colour: green while time is comfortable, red at 3 s or below.
      */
     private fun startTimer() {
-        stopTimer() // cancel any leftover timer before creating a new one
+        stopTimer() // cancel any leftover timer first
 
         val totalMs = (3 + currentLevel) * 1000L
 
@@ -295,12 +279,12 @@ class MainActivity : AppCompatActivity() {
             override fun onTick(millisUntilFinished: Long) {
                 val secondsLeft = millisUntilFinished / 1000 + 1
                 binding.tvTimer.text = "⏱ $secondsLeft s"
-                // Green while comfortable, switches to red at 3 s or below
                 binding.tvTimer.setTextColor(if (secondsLeft <= 3) colorRed else colorGreen)
             }
 
             override fun onFinish() {
-                isGameOver = true          // block tile input immediately
+                // Block tile input immediately before any async work
+                isGameOver = true
                 binding.tvTimer.text = "⏱ 0 s"
                 binding.tvTimer.setTextColor(colorRed)
                 timedOut = true
@@ -309,10 +293,7 @@ class MainActivity : AppCompatActivity() {
         }.start()
     }
 
-    /**
-     * Cancels the active timer without clearing the display.
-     * The timer text stays visible between levels.
-     */
+    /** Cancels the active timer. Timer text stays visible between levels. */
     private fun stopTimer() {
         countDownTimer?.cancel()
         countDownTimer = null
@@ -328,48 +309,36 @@ class MainActivity : AppCompatActivity() {
         tiles.forEach { setTileColor(it, colorTileDefault) }
     }
 
-    /** Updates tvStatus text color to reflect the current game state. */
     private fun setStatusColor(color: Int) {
         binding.tvStatus.setTextColor(color)
     }
 
     /**
-     * Changes a tile's fill color while preserving its rounded corners.
-     * Calling setBackgroundColor() would replace the GradientDrawable entirely
-     * and lose the corner radius, so we mutate the drawable's color instead.
+     * Mutates the tile's GradientDrawable color to preserve rounded corners.
+     * Using setBackgroundColor() would replace the drawable entirely and
+     * lose the corner radius defined in tile_background.xml.
      */
     private fun setTileColor(tile: View, color: Int) {
         (tile.background as? GradientDrawable)?.setColor(color)
     }
 
-    /** Reads the saved high score and updates the display label. */
     private fun updateHighScoreDisplay() {
         binding.tvHighScore.text = "High Score: ${prefs.getInt(KEY_HIGH_SCORE, 0)}"
     }
 
     /**
-     * Loads the player's personal best from Firestore and syncs it into
-     * SharedPreferences. Shows the local value immediately, then updates
-     * the display once Firestore responds.
-     *
-     * Strategy:
-     *  1. Show the locally cached score right away (instant, works offline)
-     *  2. Fetch from Firestore in the background
-     *  3. If Firestore has a higher value, update local cache and display
+     * Loads the high score from Firestore and syncs it into SharedPreferences.
+     * Shows the locally cached value immediately (instant, works offline),
+     * then updates the display if Firestore has a higher value.
      */
     private fun loadHighScoreFromFirestore() {
-        // Step 1 — show cached value immediately so the screen isn't blank
-        updateHighScoreDisplay()
+        updateHighScoreDisplay() // show cached value immediately
 
-        // Step 2 — fetch from Firestore
-        val userId = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
 
-        FirebaseManager.loadPersonalBest(userId) { firestoreScore ->
+        FirebaseManager.loadPersonalBest(uid) { firestoreScore ->
             val localScore = prefs.getInt(KEY_HIGH_SCORE, 0)
-
             if (firestoreScore > localScore) {
-                // Step 3 — Firestore has a better score (e.g. from another device)
-                // Update local cache and refresh the display
                 prefs.edit().putInt(KEY_HIGH_SCORE, firestoreScore).apply()
                 updateHighScoreDisplay()
             }
