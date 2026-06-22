@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "624506224575",
+    "project_id": "repattern-d6755",
+    "storage_bucket": "repattern-d6755.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:624506224575:android:c785b3a23362e7fa192b0a",
+        "android_client_info": {
+          "package_name": "com.example.patternmemorygame"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2hKyGCJIQKzhUPwKXK2rzp9UBUhNMGBw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

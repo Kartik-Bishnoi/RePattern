@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single leaderboard row: Rank | Username | Score -->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="16dp">
+
+    <!-- Rank: #1, #2, etc. — fixed width so all usernames align -->
+    <TextView
+        android:id="@+id/tvRank"
+        android:layout_width="52dp"
+        android:layout_height="wrap_content"
+        android:text="#1"
+        android:textSize="16sp"
+        android:textColor="@color/tile_correct"
+        android:textStyle="bold" />
+
+    <!-- Username — takes all remaining space -->
+    <TextView
+        android:id="@+id/tvUsername"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="PlayerOne"
+        android:textSize="19sp"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold" />
+
+    <!-- Score — fixed width, right-aligned -->
+    <TextView
+        android:id="@+id/tvScore"
+        android:layout_width="52dp"
+        android:layout_height="wrap_content"
+        android:text="20"
+        android:textSize="19sp"
+        android:textColor="@color/tile_correct"
+        android:textStyle="bold"
+        android:gravity="end" />
+
+</LinearLayout>

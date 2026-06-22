@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- App theme -->
+    <style name="Theme.PatternMemoryGame" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/btn_start</item>
+        <item name="colorPrimaryDark">@color/bg_header</item>
+        <item name="colorAccent">@color/tile_highlight</item>
+        <item name="android:windowBackground">@color/bg_screen</item>
+        <item name="android:statusBarColor">@color/bg_header</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+    <!--
+        Tile style.
+        Uses a shape drawable so rounded corners are preserved.
+        The drawable's solid color is mutated at runtime in MainActivity
+        via setTileColor() — this keeps corners intact during flashes.
+    -->
+    <style name="TileButton">
+        <item name="android:layout_width">100dp</item>
+        <item name="android:layout_height">100dp</item>
+        <item name="android:layout_margin">8dp</item>
+        <item name="android:background">@drawable/tile_background</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:elevation">6dp</item>
+    </style>
+
+</resources>

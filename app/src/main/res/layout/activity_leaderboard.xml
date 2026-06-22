@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Root is a plain LinearLayout — fitsSystemWindows is intentionally NOT set
+    here to avoid it consuming height and squashing the RecyclerView.
+    Status bar safe area is handled via paddingTop on the back button row.
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/bg_screen">
+
+    <!-- ── TOP BAR ─────────────────────────────────────────────────────────
+         Back button sits in its own full-width row at the very top.
+         paddingTop="40dp" clears the status bar on all screen sizes.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg_header"
+        android:paddingTop="40dp"
+        android:paddingBottom="12dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Back button — left aligned, large tap target -->
+        <TextView
+            android:id="@+id/tvBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="← Back"
+            android:textSize="18sp"
+            android:textColor="@color/tile_wrong"
+            android:textStyle="bold"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:paddingEnd="16dp" />
+
+    </LinearLayout>
+
+    <!-- ── TITLE ───────────────────────────────────────────────────────────
+         Centered title on its own row, clearly separated from the back button.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="🏆 Leaderboard"
+        android:textSize="26sp"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingTop="24dp"
+        android:paddingBottom="16dp" />
+
+    <!-- Thin divider line below title -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/bg_header"
+        android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Loading spinner — visible while Firestore data is being fetched -->
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_weight="1"
+        android:visibility="gone" />
+
+    <!-- Empty state message — shown when no scores exist -->
+    <TextView
+        android:id="@+id/tvEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:text="No leaderboard data available."
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:gravity="center"
+        android:visibility="gone" />
+
+    <!-- ── LEADERBOARD LIST ────────────────────────────────────────────────
+         layout_height="0dp" + layout_weight="1" makes it fill all remaining
+         space — this is what was missing and caused entries not to show.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerLeaderboard"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="8dp"
+        android:paddingBottom="16dp"
+        android:clipToPadding="false"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FrameLayout root lets the Logout button float in the top-right corner
+    while the main content stays centered.
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
+    android:background="@color/bg_screen">
+
+    <!-- Centered main content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="48dp">
+
+        <!-- App name -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Re:Pattern"
+            android:textSize="42sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:letterSpacing="0.04"
+            android:gravity="center"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Tagline -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Remember. Recall. Repeat."
+            android:textSize="18sp"
+            android:textColor="@color/text_secondary"
+            android:letterSpacing="0.03"
+            android:gravity="center"
+            android:layout_marginBottom="20dp" />
+
+        <!-- Welcome message — shows the logged-in user's username -->
+        <TextView
+            android:id="@+id/tvWelcomeUser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Welcome, Player"
+            android:textSize="22sp"
+            android:textColor="@color/tile_correct"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginBottom="28dp" />
+
+        <!-- Play button -->
+        <Button
+            android:id="@+id/btnPlay"
+            android:layout_width="220dp"
+            android:layout_height="56dp"
+            android:text="Play"
+            android:textSize="18sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:background="@drawable/btn_start_background"
+            android:stateListAnimator="@null"
+            android:layout_marginBottom="12dp" />
+
+        <!-- Leaderboard button -->
+        <Button
+            android:id="@+id/btnLeaderboard"
+            android:layout_width="220dp"
+            android:layout_height="56dp"
+            android:text="🏆 Leaderboard"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:letterSpacing="0.04"
+            android:background="@drawable/btn_start_background"
+            android:stateListAnimator="@null" />
+
+    </LinearLayout>
+
+    <!-- Logout button — floats in top-right corner, below the status bar -->
+    <TextView
+        android:id="@+id/tvLogout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Logout"
+        android:textSize="14sp"
+        android:textColor="@color/tile_wrong"
+        android:textStyle="bold"
+        android:layout_gravity="top|end"
+        android:paddingTop="36dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="8dp"
+        android:paddingStart="8dp" />
+
+</FrameLayout>
